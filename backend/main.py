@@ -22,4 +22,17 @@ class User(Base):
     gdpr_consent = Column(Boolean) #stores if user agreed to the gdpr rules 
     created_at = Column(DateTime, default=datetime.utcnow)
 
+Base.metadata.create_all(bind=engine) #create the database table 
+
+#Create CryptContext instance
+password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+#password hashing function
+def hash_password(password):
+    return password_context.hash(password)
+
+#verify the plain password against the hashed 
+def verify_password(plain, hashed):
+    return password_context.verify(plain, hashed)
+
 
