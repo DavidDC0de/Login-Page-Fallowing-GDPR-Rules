@@ -12,6 +12,13 @@ engine = create_engine("sqlite:///./users.db", connect_args={"check_same_thread"
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
+def get_db(): #starts a new db session every time is called 
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 #tells sql what type of data is gonna be stored in each column
 class User(Base):
     __tablename__ = "users"
@@ -35,4 +42,38 @@ def hash_password(password):
 def verify_password(plain, hashed):
     return password_context.verify(plain, hashed)
 
+class RegisterIn(BaseModel): #data coming in form the front end 
+    email: EmailStr
+    password: str
+    gdpr_consent: bool
 
+class RegisterOut(BaseModel): #data going back to the front end from the backend 
+    message: str
+    
+
+@app.post("/register", response = RegisterOut)
+def register(payload: RegisterIn, db: Session = Depends(get_db)):
+    #check for GDPR consent
+    if not payload.gdpr_consent:
+        raise HTTPException(status_code=400, detail="Must accept the GDPR consent to register.")
+
+    #check if user already exists in the db
+    existing = db.query(User).filter(User.email == payload.email).first()
+    if existing == True:
+        raise HTTPException(status_code=400, detail="Email provided is already registered.")
+
+    #hash the raw password
+    new_password = hash_password(payload.password)
+
+    #create the new user
+    new_user = User(
+        email = payload.email,
+        password_hash = new_password,
+        gdpr_consent = payload.gdpr_consent
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return RegisterOut(message="User registered succesfully!")
