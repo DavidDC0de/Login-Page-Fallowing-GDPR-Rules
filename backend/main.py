@@ -1,3 +1,11 @@
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, EmailStr
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from passlib.context import CryptContext
+from datetime import datetime
+
 app = FastAPI()
 
 app.add_middleware(
@@ -59,7 +67,7 @@ def register(payload: RegisterIn, db: Session = Depends(get_db)):
 
     #check if user already exists in the db
     existing = db.query(User).filter(User.email == payload.email).first()
-    if existing == True:
+    if existing:
         raise HTTPException(status_code=400, detail="Email provided is already registered.")
 
     #hash the raw password
