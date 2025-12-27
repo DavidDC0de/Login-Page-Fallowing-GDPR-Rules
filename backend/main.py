@@ -10,7 +10,9 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], #allow backend to talk to frontend
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"], #allow backend to talk to frontend
     allow_methods=["*"],
     allow_headers=["*"]
 )
@@ -40,7 +42,7 @@ class User(Base):
 Base.metadata.create_all(bind=engine) #create the database table 
 
 #Create CryptContext instance
-password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+password_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 #password hashing function
 def hash_password(password):
@@ -59,7 +61,7 @@ class RegisterOut(BaseModel): #data going back to the front end from the backend
     message: str
     
 
-@app.post("/register", response = RegisterOut)
+@app.post("/register", response_model = RegisterOut)
 def register(payload: RegisterIn, db: Session = Depends(get_db)):
     #check for GDPR consent
     if not payload.gdpr_consent:
